@@ -10,7 +10,7 @@ from pymongo.errors import BulkWriteError
 from app.core.errors import NotFoundError
 from app.db.mongo import Collections, get_db
 from app.models.domain import ChangeEvent, utcnow
-from app.models.enums import ChangeStatus
+from app.models.enums import ChangeStatus, ChangeType
 
 
 def _dump(c: ChangeEvent) -> dict[str, Any]:
@@ -104,9 +104,11 @@ class ChangeEventRepository:
         )
 
     async def unreviewed_count(self, user_id: str) -> int:
+        """Only MATERIAL changes can be unreviewed. A quiet stock is not a task."""
         return await self.col.count_documents(
             {
                 "user_id": user_id,
+                "change_type": {"$ne": ChangeType.NO_MATERIAL_CHANGE.value},
                 "status": {
                     "$in": [ChangeStatus.NEW.value, ChangeStatus.IMPORTANT.value, ChangeStatus.VIEWED.value]
                 },

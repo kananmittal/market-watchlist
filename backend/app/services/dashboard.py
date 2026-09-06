@@ -19,7 +19,13 @@ from datetime import datetime, timedelta
 
 from app.core.logging import get_logger
 from app.core.market_time import MarketState, describe_gap, get_market_state
-from app.models.domain import ChangeEvent, MarketObservation, NewsEvent, utcnow
+from app.models.domain import (
+    ChangeEvent,
+    MarketObservation,
+    NewsEvent,
+    UserSymbolState,
+    utcnow,
+)
 from app.models.enums import ActivityType, ChangeStatus, Severity
 from app.providers.symbols import BENCHMARK_SYMBOL, display_name, sector_index_for
 from app.repositories.changes import ChangeEventRepository
@@ -177,9 +183,11 @@ class DashboardService:
                 )
             )
 
-        # 5. Persist, then re-read so previously acknowledged statuses win.
+        # 5. Decide statuses against what is already stored, THEN persist.
+        #    Merging after writing cannot distinguish "was immaterial" from
+        #    "is immaterial", because the write has already overwritten it.
+        events = await self._merge_persisted_status(user_id, events, states)
         await self.changes.upsert_many(events)
-        events = await self._merge_persisted_status(user_id, events)
         for view in views:
             for ev in events:
                 if ev.symbol == view.symbol:
@@ -208,7 +216,12 @@ class DashboardService:
         )
 
     # ------------------------------------------------------------------
-    async def _merge_persisted_status(self, user_id: str, events: list[ChangeEvent]) -> list[ChangeEvent]:
+    async def _merge_persisted_status(
+        self,
+        user_id: str,
+        events: list[ChangeEvent],
+        states: dict[str, UserSymbolState] | None = None,
+    ) -> list[ChangeEvent]:
         """Recomputing must never resurrect a change the user already reviewed."""
         stored = {e.id: e for e in await self.changes.list_for_user(user_id, limit=300)}
         merged: list[ChangeEvent] = []
@@ -216,7 +229,24 @@ class DashboardService:
         for ev in events:
             prior = stored.get(ev.id)
             if prior is not None:
-                ev = ev.model_copy(update={"status": prior.status})
+                if prior.status in {ChangeStatus.ACKNOWLEDGED, ChangeStatus.DISMISSED}:
+                    # An explicit user decision always wins.
+                    ev = ev.model_copy(update={"status": prior.status})
+                elif ev.is_material and not prior.is_material:
+                    # It was quiet last time and is not any more: ask for
+                    # attention again rather than inheriting the old status.
+                    ev = ev.model_copy(update={"status": ChangeStatus.NEW})
+                else:
+                    ev = ev.model_copy(update={"status": prior.status})
+
+            # VIEWED must mean "the user opened this stock". The engine also uses
+            # VIEWED as a placeholder for immaterial changes, and that placeholder
+            # could survive a merge and make a material change look already-seen.
+            # Anchor the label to the user's actual state instead.
+            if ev.status is ChangeStatus.VIEWED and ev.is_material:
+                state = (states or {}).get(ev.symbol)
+                if state is None or state.last_viewed_at is None:
+                    ev = ev.model_copy(update={"status": ChangeStatus.NEW})
             if ev.detected_at < cutoff and ev.status in {ChangeStatus.NEW, ChangeStatus.IMPORTANT}:
                 ev = ev.model_copy(update={"status": ChangeStatus.STALE})
             merged.append(ev)

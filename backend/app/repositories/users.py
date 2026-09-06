@@ -133,10 +133,18 @@ class UserSymbolStateRepository:
         return UserSymbolState(**doc)
 
     async def mark_acknowledged(self, user_id: str, symbol: str) -> UserSymbolState:
+        """Record an explicit review.
+
+        Deliberately does NOT touch last_viewed_at. That timestamp is the
+        "since you last looked" anchor; moving it here would reset the
+        comparison window, so the change the user just reviewed would be
+        recomputed as a zero-percent move and vanish from the feed instead of
+        showing as reviewed.
+        """
         doc = await self.col.find_one_and_update(
             {"user_id": user_id, "symbol": symbol},
             {
-                "$set": {"last_acknowledged_at": utcnow(), "last_viewed_at": utcnow()},
+                "$set": {"last_acknowledged_at": utcnow()},
                 "$setOnInsert": {
                     "user_id": user_id,
                     "symbol": symbol,
