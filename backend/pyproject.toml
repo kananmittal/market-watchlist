@@ -64,6 +64,14 @@ ignore = ["B008", "RUF012"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# Playwright's sync API installs its own event loop, which prevents
+# pytest-asyncio from creating one for any async test collected afterwards.
+# E2E therefore runs as a separate suite: `pytest -m e2e`.
+addopts = "-m 'not e2e'"
+markers = [
+    "e2e: browser end-to-end tests; needs the API and web servers running",
+]
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
 

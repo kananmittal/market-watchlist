@@ -1,0 +1,49 @@
+# Render Blueprint for the backend.
+#
+# Deploy with: Render dashboard -> New -> Blueprint -> pick this repository.
+# Secrets are marked sync:false, so Render prompts for them rather than ever
+# storing them in git.
+#
+# Free-tier notes:
+#   * The service sleeps after ~15 minutes without traffic. The first request
+#     afterwards takes 30-60s to wake. The frontend surfaces this as "the server
+#     may be waking up" rather than a hard failure.
+#   * The filesystem is ephemeral, so nothing is persisted locally. All state
+#     lives in MongoDB Atlas.
+
+services:
+  - type: web
+    name: market-watchlist-api
+    runtime: python
+    plan: free
+    region: singapore # closest region to NSE data consumers
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install .
+    # Render injects $PORT; binding 0.0.0.0 is required for the health check.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DEMO_MODE
+        value: "false"
+      - key: MARKET_PROVIDER_ORDER
+        value: yfinance,jugaad,demo
+      - key: MONGODB_DB
+        value: market_watchlist
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      # ---- provided at deploy time, never committed ----
+      - key: MONGODB_URI
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true # Render generates a strong secret automatically
+      - key: CORS_ORIGINS
+        sync: false # set to your Vercel URL once the frontend is deployed

@@ -19,12 +19,20 @@ from app.services.news_engine import (
 )
 
 
-def article(title: str, *, source: str = "Reuters", hours_ago: float = 1.0,
-            summary: str = "", link: str = "https://example.test/a") -> RawArticle:
+def article(
+    title: str,
+    *,
+    source: str = "Reuters",
+    hours_ago: float = 1.0,
+    summary: str = "",
+    link: str = "https://example.test/a",
+) -> RawArticle:
     return RawArticle(
-        title=title, link=link,
+        title=title,
+        link=link,
         published_at=datetime.now(UTC) - timedelta(hours=hours_ago),
-        source=source, summary=summary,
+        source=source,
+        summary=summary,
     )
 
 
@@ -49,16 +57,19 @@ class TestStripHtml:
 
 
 class TestClassification:
-    @pytest.mark.parametrize("title,expected", [
-        ("TCS Q4 Results Preview: net profit expected to rise", NewsEventType.EARNINGS),
-        ("Reliance to acquire stake in renewable firm", NewsEventType.MERGER_ACQUISITION),
-        ("SEBI issues notice to company over disclosure", NewsEventType.REGULATORY),
-        ("NCLT admits insolvency plea against firm", NewsEventType.LEGAL),
-        ("Infosys CFO resigns after four years", NewsEventType.MANAGEMENT),
-        ("Company announces dividend of Rs 70 per share", NewsEventType.CORPORATE_ACTION),
-        ("TCS arm plans to invest Rs 70,000 crore in data centre", NewsEventType.PRODUCT_BUSINESS),
-        ("Brokerage raises target price on HDFC Bank", NewsEventType.ANALYST),
-    ])
+    @pytest.mark.parametrize(
+        "title,expected",
+        [
+            ("TCS Q4 Results Preview: net profit expected to rise", NewsEventType.EARNINGS),
+            ("Reliance to acquire stake in renewable firm", NewsEventType.MERGER_ACQUISITION),
+            ("SEBI issues notice to company over disclosure", NewsEventType.REGULATORY),
+            ("NCLT admits insolvency plea against firm", NewsEventType.LEGAL),
+            ("Infosys CFO resigns after four years", NewsEventType.MANAGEMENT),
+            ("Company announces dividend of Rs 70 per share", NewsEventType.CORPORATE_ACTION),
+            ("TCS arm plans to invest Rs 70,000 crore in data centre", NewsEventType.PRODUCT_BUSINESS),
+            ("Brokerage raises target price on HDFC Bank", NewsEventType.ANALYST),
+        ],
+    )
     def test_maps_headlines_to_event_types(self, title, expected):
         assert classify(title)[0] is expected
 
@@ -68,12 +79,15 @@ class TestClassification:
         _, generic = classify("TCS Share Price today: down 2.08%")
         assert earnings > analyst > generic
 
-    @pytest.mark.parametrize("title", [
-        "Stocks to watch: TCS, Reliance, Infosys",
-        "Top gainers and losers on Nifty today",
-        "TCS Share Price August 31: Down 2.08% to Rs 3,157",
-        "Tata Consultancy Services Ltd. Stock Hits 52-Week Low",
-    ])
+    @pytest.mark.parametrize(
+        "title",
+        [
+            "Stocks to watch: TCS, Reliance, Infosys",
+            "Top gainers and losers on Nifty today",
+            "TCS Share Price August 31: Down 2.08% to Rs 3,157",
+            "Tata Consultancy Services Ltd. Stock Hits 52-Week Low",
+        ],
+    )
     def test_routine_wire_copy_is_low_significance(self, title):
         event_type, significance = classify(title)
         assert event_type is NewsEventType.GENERAL
@@ -107,24 +121,28 @@ class TestDeduplication:
     def test_three_outlets_one_earnings_release_becomes_one_event(self):
         """Spec section 11: three articles about one event are not three events."""
         engine = NewsEngine()
-        events = engine.build_events("TCS", [
-            article("TCS Q4 results: net profit rises 12% to Rs 12,400 crore", source="Reuters"),
-            article("TCS Q4 net profit up 12%, revenue beats estimates", source="Mint"),
-            article("Tata Consultancy Services posts 12% rise in Q4 profit", source="ET"),
-        ])
+        events = engine.build_events(
+            "TCS",
+            [
+                article("TCS Q4 results: net profit rises 12% to Rs 12,400 crore", source="Reuters"),
+                article("TCS Q4 net profit up 12%, revenue beats estimates", source="Mint"),
+                article("Tata Consultancy Services posts 12% rise in Q4 profit", source="ET"),
+            ],
+        )
         assert len(events) == 1
         assert events[0].article_count == 3
 
     def test_distinct_stories_stay_separate(self):
         engine = NewsEngine()
-        events = engine.build_events("TCS", [
-            article("TCS Q4 results: net profit rises 12%"),
-            article("SEBI issues notice to TCS over disclosure lapse"),
-        ])
+        events = engine.build_events(
+            "TCS",
+            [
+                article("TCS Q4 results: net profit rises 12%"),
+                article("SEBI issues notice to TCS over disclosure lapse"),
+            ],
+        )
         assert len(events) == 2
-        assert {e.event_type for e in events} == {
-            NewsEventType.EARNINGS, NewsEventType.REGULATORY
-        }
+        assert {e.event_type for e in events} == {NewsEventType.EARNINGS, NewsEventType.REGULATORY}
 
     def test_corroboration_bonus_is_capped(self):
         """Widely syndicated news must not outrank genuinely bigger news on volume."""
@@ -153,10 +171,13 @@ class TestFiltering:
 
     def test_results_are_ranked_by_weighted_significance(self):
         engine = NewsEngine()
-        events = engine.build_events("TCS", [
-            article("TCS Share Price today: down 2%"),
-            article("TCS Q4 results: net profit rises 12%"),
-        ])
+        events = engine.build_events(
+            "TCS",
+            [
+                article("TCS Share Price today: down 2%"),
+                article("TCS Q4 results: net profit rises 12%"),
+            ],
+        )
         assert events[0].event_type is NewsEventType.EARNINGS
         assert events[0].weighted_significance > events[-1].weighted_significance
 

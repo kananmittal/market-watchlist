@@ -1,6 +1,13 @@
-"""Domain -> API response mapping, kept out of the routers."""
+"""Domain -> API response mapping, kept out of the routers.
+
+The mappers are overloaded: passing a value returns a response, passing None
+returns None. Without this the routers would appear to return Optional even
+where the domain object is known to exist.
+"""
 
 from __future__ import annotations
+
+from typing import overload
 
 from app.api.schemas import (
     ActivityResponse,
@@ -59,6 +66,10 @@ def watchlist_to_response(wl: Watchlist) -> WatchlistResponse:
     )
 
 
+@overload
+def quote_to_response(obs: MarketObservation, freshness: dict | None = ...) -> QuoteResponse: ...
+@overload
+def quote_to_response(obs: None, freshness: dict | None = ...) -> None: ...
 def quote_to_response(obs: MarketObservation | None, freshness: dict | None = None) -> QuoteResponse | None:
     if obs is None:
         return None
@@ -78,6 +89,10 @@ def quote_to_response(obs: MarketObservation | None, freshness: dict | None = No
     )
 
 
+@overload
+def change_to_response(change: ChangeEvent) -> ChangeResponse: ...
+@overload
+def change_to_response(change: None) -> None: ...
 def change_to_response(change: ChangeEvent | None) -> ChangeResponse | None:
     if change is None:
         return None
@@ -137,6 +152,10 @@ def activity_to_response(event: ActivityEvent) -> ActivityResponse:
     )
 
 
+@overload
+def history_to_response(history: PriceHistory, interval: str = ...) -> HistoryResponse: ...
+@overload
+def history_to_response(history: None, interval: str = ...) -> None: ...
 def history_to_response(history: PriceHistory | None, interval: str = "1d") -> HistoryResponse | None:
     if history is None:
         return None

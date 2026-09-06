@@ -1,0 +1,21 @@
+# Render installs via `pip install .` (pyproject.toml) by default.
+# This file exists for platforms or workflows that expect requirements.txt.
+# Keep in sync with pyproject.toml [project.dependencies].
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12
+pydantic>=2.9
+pydantic-settings>=2.6
+email-validator>=2.2
+pymongo>=4.13
+pyjwt>=2.9
+bcrypt>=4.2
+httpx>=0.27
+tenacity>=9.0
+yfinance>=0.2.50
+jugaad-data>=0.35
+pandas>=2.2
+numpy>=1.26
+feedparser>=6.0
+groq>=0.13
+structlog>=24.4

@@ -41,7 +41,7 @@ def _parse_time(entry: object) -> datetime:
     parsed = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
     if parsed:
         try:
-            return datetime(*parsed[:6], tzinfo=UTC)
+            return datetime(*parsed[:6]).replace(tzinfo=UTC)  # type: ignore[misc]
         except (TypeError, ValueError):
             pass
     return datetime.now(UTC)

@@ -162,7 +162,8 @@ async def get_stock_detail(
     )
     news = await NewsRepository().for_symbol(symbol, limit=8)
     activity = await memory.recent_activity(user.id, symbol=symbol, limit=25)
-    change = (await ChangeEventRepository().list_for_user(user.id, symbol=symbol, limit=1) or [None])[0]
+    recent = await ChangeEventRepository().list_for_user(user.id, symbol=symbol, limit=1)
+    change = recent[0] if recent else None
 
     return StockDetailResponse(
         symbol=symbol,

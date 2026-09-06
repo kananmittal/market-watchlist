@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Any
 
 from app.core.logging import get_logger
 from app.core.market_time import MarketState, describe_gap, get_market_state
@@ -23,6 +24,7 @@ from app.models.domain import (
     ChangeEvent,
     MarketObservation,
     NewsEvent,
+    PriceHistory,
     UserSymbolState,
     utcnow,
 )
@@ -282,14 +284,10 @@ class DashboardService:
                 out.update(res)
         return out
 
-    async def _histories(self, symbols: list[str]) -> dict[str, object]:
+    async def _histories(self, symbols: list[str]) -> dict[str, PriceHistory]:
         """Historical bars power the volatility and volume baselines."""
         results = await asyncio.gather(*(self.market.get_history(s) for s in symbols), return_exceptions=True)
-        return {
-            sym: res
-            for sym, res in zip(symbols, results, strict=False)
-            if res is not None and not isinstance(res, BaseException)
-        }
+        return {sym: res for sym, res in zip(symbols, results, strict=False) if isinstance(res, PriceHistory)}
 
     async def _no_news(self, symbols: list[str]) -> dict[str, list[NewsEvent]]:
         return {s: [] for s in symbols}
@@ -316,7 +314,7 @@ class DashboardService:
             return {s: [] for s in symbols}
 
     # ------------------------------------------------------------------
-    def catch_me_up(self, result: DashboardResult) -> dict[str, object]:
+    def catch_me_up(self, result: DashboardResult) -> dict[str, Any]:
         """The deterministic Catch Me Up summary. No LLM required."""
         high = [e for e in result.meaningful_changes if e.severity is Severity.HIGH]
         medium = [e for e in result.meaningful_changes if e.severity is Severity.MEDIUM]
