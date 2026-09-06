@@ -23,27 +23,43 @@ class SymbolInfo:
 
 # Sector index tickers on Yahoo Finance. Only widely-available ones are used;
 # a missing sector degrades to benchmark-only comparison.
+# Sector indices, addressed by CANONICAL symbol like every other instrument.
+# Using Yahoo tickers as identifiers here previously meant the demo provider had
+# no entry for "^NSEBANK" and silently produced random sector data.
 SECTOR_INDICES: dict[str, tuple[str, str]] = {
-    # sector key -> (display name, yahoo ticker)
-    "IT": ("NIFTY IT", "^CNXIT"),
-    "BANKING": ("NIFTY BANK", "^NSEBANK"),
-    "FMCG": ("NIFTY FMCG", "^CNXFMCG"),
-    "AUTO": ("NIFTY AUTO", "^CNXAUTO"),
-    "PHARMA": ("NIFTY PHARMA", "^CNXPHARMA"),
-    "METAL": ("NIFTY METAL", "^CNXMETAL"),
-    "ENERGY": ("NIFTY ENERGY", "^CNXENERGY"),
-    "REALTY": ("NIFTY REALTY", "^CNXREALTY"),
-    "FINANCE": ("NIFTY FIN SERVICE", "NIFTY_FIN_SERVICE.NS"),
-    "CONSUMER": ("NIFTY FMCG", "^CNXFMCG"),
-    "TELECOM": ("NIFTY 50", "^NSEI"),
-    "INFRA": ("NIFTY 50", "^NSEI"),
-    "DIVERSIFIED": ("NIFTY 50", "^NSEI"),
+    # sector key -> (canonical index symbol, display name)
+    "IT": ("NIFTYIT", "NIFTY IT"),
+    "BANKING": ("BANKNIFTY", "NIFTY BANK"),
+    "FMCG": ("NIFTYFMCG", "NIFTY FMCG"),
+    "AUTO": ("NIFTYAUTO", "NIFTY AUTO"),
+    "PHARMA": ("NIFTYPHARMA", "NIFTY PHARMA"),
+    "METAL": ("NIFTYMETAL", "NIFTY METAL"),
+    "ENERGY": ("NIFTYENERGY", "NIFTY ENERGY"),
+    "REALTY": ("NIFTYREALTY", "NIFTY REALTY"),
+    "FINANCE": ("NIFTYFIN", "NIFTY FIN SERVICE"),
+    "CONSUMER": ("NIFTYFMCG", "NIFTY FMCG"),
+    "TELECOM": ("NIFTY50", "NIFTY 50"),
+    "INFRA": ("NIFTY50", "NIFTY 50"),
+    "DIVERSIFIED": ("NIFTY50", "NIFTY 50"),
 }
 
+_INDEX_DEFS: list[tuple[str, str, str, str]] = [
+    # (canonical, display, sector, yahoo)
+    ("NIFTY50", "NIFTY 50", "DIVERSIFIED", "^NSEI"),
+    ("SENSEX", "BSE SENSEX", "DIVERSIFIED", "^BSESN"),
+    ("BANKNIFTY", "NIFTY BANK", "BANKING", "^NSEBANK"),
+    ("NIFTYIT", "NIFTY IT", "IT", "^CNXIT"),
+    ("NIFTYFMCG", "NIFTY FMCG", "FMCG", "^CNXFMCG"),
+    ("NIFTYAUTO", "NIFTY AUTO", "AUTO", "^CNXAUTO"),
+    ("NIFTYPHARMA", "NIFTY PHARMA", "PHARMA", "^CNXPHARMA"),
+    ("NIFTYMETAL", "NIFTY METAL", "METAL", "^CNXMETAL"),
+    ("NIFTYENERGY", "NIFTY ENERGY", "ENERGY", "^CNXENERGY"),
+    ("NIFTYREALTY", "NIFTY REALTY", "REALTY", "^CNXREALTY"),
+    ("NIFTYFIN", "NIFTY FIN SERVICE", "FINANCE", "NIFTY_FIN_SERVICE.NS"),
+]
+
 INDICES: dict[str, SymbolInfo] = {
-    "NIFTY50": SymbolInfo("NIFTY50", "NIFTY 50", "DIVERSIFIED", "^NSEI", is_index=True),
-    "SENSEX": SymbolInfo("SENSEX", "BSE SENSEX", "DIVERSIFIED", "^BSESN", is_index=True),
-    "BANKNIFTY": SymbolInfo("BANKNIFTY", "NIFTY BANK", "BANKING", "^NSEBANK", is_index=True),
+    sym: SymbolInfo(sym, name, sector, yahoo, is_index=True) for sym, name, sector, yahoo in _INDEX_DEFS
 }
 
 
@@ -158,11 +174,15 @@ def sector_of(symbol: str) -> str | None:
 
 
 def sector_index_for(symbol: str) -> tuple[str, str] | None:
-    """(display name, yahoo ticker) of the sector index for a symbol."""
+    """(display name, canonical index symbol) of a symbol's sector index."""
     sector = sector_of(symbol)
     if not sector:
         return None
-    return SECTOR_INDICES.get(sector)
+    pair = SECTOR_INDICES.get(sector)
+    if not pair:
+        return None
+    index_symbol, display = pair
+    return display, index_symbol
 
 
 def display_name(symbol: str) -> str:

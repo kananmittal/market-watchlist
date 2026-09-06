@@ -63,6 +63,14 @@ BASE_PRICES: dict[str, float] = {
     "PAYTM": 890.0,
     "DLF": 785.0,
     "NIFTY50": 23900.0,
+    "NIFTYIT": 30700.0,
+    "NIFTYFMCG": 45900.0,
+    "NIFTYAUTO": 27700.0,
+    "NIFTYPHARMA": 26500.0,
+    "NIFTYMETAL": 13300.0,
+    "NIFTYENERGY": 38000.0,
+    "NIFTYREALTY": 908.0,
+    "NIFTYFIN": 26050.0,
     "BANKNIFTY": 51400.0,
     "SENSEX": 78600.0,
 }
@@ -85,6 +93,9 @@ SCENARIO: dict[int, dict[str, tuple[float, float]]] = {
         "INFY": (0.3, 0.9),  # NO_MATERIAL_CHANGE
         "NIFTY50": (0.2, 1.0),  # market essentially flat -> isolates TCS
         "BANKNIFTY": (-1.2, 1.0),  # banking sector down -> explains HDFCBANK
+        "NIFTYIT": (-0.8, 1.0),  # IT barely moved -> isolates the TCS fall
+        "NIFTYFMCG": (0.4, 1.0),
+        "NIFTYENERGY": (0.6, 1.0),  # energy up mildly; RELIANCE far outruns it
     },
     2: {
         "TCS": (1.1, 1.3),  # partial recovery
@@ -180,7 +191,8 @@ class DemoProvider(MarketDataProvider):
             day = today - timedelta(days=days - i)
             if day.weekday() >= 5:
                 continue
-            wiggle = _jitter(f"{symbol}-hist", i, 1.1)  # ~+/-1.1% daily
+            # ~1.4% realised daily volatility, in line with a real NSE large cap.
+            wiggle = _jitter(f"{symbol}-hist", i, 2.4)
             price = max(price * (1 + wiggle / 100), 1.0)
             close = round(price, 2)
             openp = round(close * (1 - wiggle / 200), 2)

@@ -160,6 +160,7 @@ class ChangeEngine:
         benchmark_pct: float | None,
         sector_pct: float | None,
         divergence_norm: float | None,
+        sector_divergence_norm: float | None,
         news_score: float,
         volume_score: float,
     ) -> tuple[ChangeType, PrimaryReason]:
@@ -175,12 +176,20 @@ class ChangeEngine:
             return abs(index_pct) >= abs(move_pct) * EXPLAINED_FRACTION
 
         diverges = (divergence_norm or 0) >= DIVERGENCE_SIGNIFICANT
+        # Divergence from the SECTOR, which is the relevant test once a sector
+        # index is available: a bank falling with every other bank has not
+        # diverged from anything meaningful, even though it diverges from NIFTY.
+        diverges_from_sector = (
+            (sector_divergence_norm or 0) >= DIVERGENCE_SIGNIFICANT
+            if sector_divergence_norm is not None
+            else diverges
+        )
 
         # A real company event plus divergence from the market is the clearest
         # company-specific signal available.
         if news_score >= 10.0 and diverges:
             return ChangeType.COMPANY_SPECIFIC, PrimaryReason.COMPANY_EVENT
-        if explained_by(sector_pct) and not diverges:
+        if explained_by(sector_pct) and not diverges_from_sector:
             return ChangeType.SECTOR_DRIVEN, PrimaryReason.SECTOR_MOVE
         if explained_by(benchmark_pct) and not diverges:
             return ChangeType.MARKET_DRIVEN, PrimaryReason.MARKET_MOVE
@@ -242,6 +251,9 @@ class ChangeEngine:
         divergence_norm = (
             round(abs(rel_benchmark) / vol.expected_daily_move_pct, 4) if rel_benchmark is not None else None
         )
+        sector_divergence_norm = (
+            round(abs(rel_sector) / vol.expected_daily_move_pct, 4) if rel_sector is not None else None
+        )
 
         # --- volume ---
         vol_baseline = average_volume(data.history)
@@ -262,6 +274,7 @@ class ChangeEngine:
             benchmark_pct=benchmark_pct,
             sector_pct=sector_pct,
             divergence_norm=divergence_norm,
+            sector_divergence_norm=sector_divergence_norm,
             news_score=s_news,
             volume_score=s_vol,
         )
