@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 
 from app.models.domain import OHLCBar
 
@@ -27,7 +28,7 @@ def pct_change(current: float | None, previous: float | None) -> float | None:
 def daily_returns(bars: list[OHLCBar]) -> list[float]:
     """Close-to-close percentage returns."""
     out: list[float] = []
-    for prev, cur in zip(bars, bars[1:], strict=False):
+    for prev, cur in pairwise(bars):
         if prev.close:
             out.append((cur.close - prev.close) / prev.close * 100)
     return out
@@ -48,7 +49,7 @@ def average_true_range_pct(bars: list[OHLCBar], period: int = 14) -> float | Non
     if len(bars) < 2:
         return None
     trs: list[float] = []
-    for prev, cur in zip(bars, bars[1:], strict=False):
+    for prev, cur in pairwise(bars):
         tr = max(cur.high - cur.low, abs(cur.high - prev.close), abs(cur.low - prev.close))
         if cur.close:
             trs.append(tr / cur.close * 100)
@@ -149,7 +150,7 @@ def saturating_score(value: float | None, breakpoints: list[tuple[float, float]]
     first_in, _ = breakpoints[0]
     if value <= first_in:
         return 0.0
-    for (x0, y0), (x1, y1) in zip(breakpoints, breakpoints[1:], strict=False):
+    for (x0, y0), (x1, y1) in pairwise(breakpoints):
         if value <= x1:
             if x1 == x0:
                 return y1

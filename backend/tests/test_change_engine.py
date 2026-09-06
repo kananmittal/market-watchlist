@@ -272,7 +272,7 @@ class TestSinceYouLastLooked:
 
     def test_volatility_context_changes_the_verdict(self, engine, make_obs, make_bars):
         """An identical 2% move is material for a calm stock, routine for a wild one."""
-        common = dict(current=make_obs("X", 102.0, 100.0), baseline=make_obs("X", 100.0, 100.0))
+        common = {"current": make_obs("X", 102.0, 100.0), "baseline": make_obs("X", 100.0, 100.0)}
         calm = engine.evaluate(build("X", history=make_bars(daily_pct=0.2, base=100.0), **common))
         wild = engine.evaluate(build("X", history=make_bars(daily_pct=5.0, base=100.0), **common))
         assert calm.breakdown.abnormality > wild.breakdown.abnormality
@@ -373,19 +373,19 @@ class TestDegradation:
 
 class TestDeterminism:
     def test_same_input_gives_same_id_and_score(self, engine, make_obs, make_bars, since):
-        args = dict(
-            current=make_obs("TCS", 2874.0, 3000.0),
-            baseline=make_obs("TCS", 3000.0, 3000.0),
-            history=make_bars(),
-            since=since,
-        )
+        args = {
+            "current": make_obs("TCS", 2874.0, 3000.0),
+            "baseline": make_obs("TCS", 3000.0, 3000.0),
+            "history": make_bars(),
+            "since": since,
+        }
         a = engine.evaluate(build("TCS", **args))
         b = engine.evaluate(build("TCS", **args))
         assert a.id == b.id
         assert a.attention_score == b.attention_score
 
     def test_id_differs_per_user_and_anchor(self, engine, make_obs, make_bars, since):
-        base = dict(current=make_obs("TCS", 2874.0, 3000.0), history=make_bars())
+        base = {"current": make_obs("TCS", 2874.0, 3000.0), "history": make_bars()}
         a = engine.evaluate(build("TCS", since=since, **base))
         b = engine.evaluate(build("TCS", since=since - timedelta(days=1), **base))
         assert a.id != b.id
