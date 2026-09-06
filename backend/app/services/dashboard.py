@@ -210,7 +210,14 @@ class DashboardService:
             symbols=views,
             meaningful_changes=meaningful,
             normal_movements=normal,
-            unreviewed_count=await self.changes.unreviewed_count(user_id),
+            # Counted from the changes actually on screen. The repository-wide
+            # count also includes superseded rows from earlier anchors, which
+            # made the header claim more items awaiting review than it listed.
+            unreviewed_count=sum(
+                1
+                for e in meaningful
+                if e.status in {ChangeStatus.NEW, ChangeStatus.IMPORTANT, ChangeStatus.VIEWED}
+            ),
             is_first_visit=is_first_visit,
             demo_mode=self.market.demo_mode,
         )
