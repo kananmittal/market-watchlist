@@ -251,12 +251,32 @@ class TestSinceYouLastLooked:
             build(
                 "TCS",
                 current=make_obs("TCS", 2874.0, 2900.0),  # -0.9% on the session
-                baseline=make_obs("TCS", 3000.0, 3000.0),  # but -4.2% since the user looked
+                # A real baseline is an EARLIER observation; same-timestamp
+                # baselines are the same bar and are deliberately ignored.
+                baseline=make_obs("TCS", 3000.0, 3000.0, age_seconds=86_400),
                 history=make_bars(),
             )
         )
         assert ev.metrics.price_change_pct == pytest.approx(-4.2, abs=0.01)
         assert "since you last looked" in ev.headline
+
+    def test_ignores_a_baseline_that_is_the_same_bar(self, engine, make_obs, make_bars):
+        """Daily bars mean the stored baseline is often the current bar itself.
+
+        Comparing a bar with itself yields 0%, which would report "nothing
+        changed" on a day the stock moved several percent. The session change
+        must be used instead.
+        """
+        ev = engine.evaluate(
+            build(
+                "INFY",
+                current=make_obs("INFY", 1090.3, 1130.0),  # -3.51% on the session
+                baseline=make_obs("INFY", 1090.3, 1130.0),  # same bar, same timestamp
+                history=make_bars(base=1130.0),
+            )
+        )
+        assert ev.metrics.price_change_pct == pytest.approx(-3.51, abs=0.05)
+        assert "latest session" in ev.headline
 
     def test_falls_back_to_session_change_for_first_visit(self, engine, make_obs, make_bars):
         ev = engine.evaluate(

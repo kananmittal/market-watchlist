@@ -225,7 +225,21 @@ class ChangeEngine:
             return self._unavailable(data, symbol)
 
         # --- movement since the user's own reference point ---
-        baseline_price = data.baseline.price if data.baseline else None
+        # A baseline is only usable if it is a genuinely EARLIER observation.
+        # With daily bars the "latest" observation and the one stored at the
+        # user's anchor are frequently the same bar, and comparing a bar with
+        # itself yields 0%, which would report "nothing changed" on a day a
+        # stock moved several percent. Fall back to the session change instead.
+        baseline = data.baseline
+        if (
+            baseline is not None
+            and current.observed_at is not None
+            and baseline.observed_at is not None
+            and baseline.observed_at >= current.observed_at
+        ):
+            baseline = None
+
+        baseline_price = baseline.price if baseline else None
         if baseline_price:
             move_pct = pct_change(current.price, baseline_price)
             move_basis = "since you last looked"
@@ -301,6 +315,7 @@ class ChangeEngine:
         )
         evidence = self._build_evidence(
             data=data,
+            effective_baseline=baseline,
             current=current,
             move_pct=move_pct,
             move_basis=move_basis,
