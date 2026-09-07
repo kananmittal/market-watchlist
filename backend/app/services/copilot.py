@@ -50,7 +50,10 @@ Rules you must follow:
 
 Style: direct and concise. Lead with the answer. 2-5 short sentences, or a
 short bullet list when several factors matter. No preamble, no restating the
-question, no sign-off."""
+question, no sign-off.
+
+Write plain prose. Do not use markdown formatting - no **bold**, no headings,
+no backticks. Bullets may start with a simple "- "."""
 
 MAX_EVIDENCE_CHARS = 7000
 CACHE_TTL_SECONDS = 180

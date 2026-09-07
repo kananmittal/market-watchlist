@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/lib/auth";
 import type { MarketStatus } from "@/lib/types";
 import { relativeTime } from "@/lib/format";
+import { GrowwLogo } from "./logo";
 import { DemoBanner } from "./ui";
 
 const NAV = [
@@ -49,8 +50,10 @@ export function Shell({
       {demoMode ? <DemoBanner /> : null}
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <Link href="/dashboard" className="flex items-baseline gap-2">
-            <span className="text-[15px] font-semibold tracking-tight text-ink">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <GrowwLogo size={26} />
+            <span className="hidden h-4 w-px bg-line sm:block" aria-hidden="true" />
+            <span className="hidden text-[14px] font-medium tracking-tight text-muted sm:block">
               Since You Last Looked
             </span>
           </Link>

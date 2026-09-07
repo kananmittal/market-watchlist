@@ -273,7 +273,9 @@ class DashboardService:
             by_anchor.setdefault(anchors.get(symbol, utcnow()), []).append(symbol)
         results = await asyncio.gather(
             *[
-                self.market.observations.observations_at_or_before_many(group, anchor)
+                self.market.observations.observations_at_or_before_many(
+                    group, anchor, synthetic=self.market.demo_mode
+                )
                 for anchor, group in by_anchor.items()
             ],
             return_exceptions=True,

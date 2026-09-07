@@ -1,72 +1,87 @@
 @import "tailwindcss";
 
 /*
-  A restrained, serious financial palette. No gradients, no neon.
-  Severity is always paired with a text label or icon in the markup, so colour
-  is never the only carrier of meaning.
+  Groww-aligned palette.
+
+  Brand: green #00D09C, blue #5367FF, near-black #121212 on white with generous
+  whitespace. Gains use Groww's green, losses their red. Severity is always
+  paired with a text label and glyph in the markup, so colour is never the only
+  carrier of meaning.
+
+  NOTE ON STRUCTURE: `@theme` must stay at the top level. Tailwind v4 hoists
+  `@theme` blocks, so nesting one inside `@media (prefers-color-scheme: dark)`
+  does NOT scope it - both sets collapse onto :root and the last one wins,
+  which silently made the whole app dark-only. Light values are therefore
+  declared in `@theme`, and the dark scheme overrides those same custom
+  properties through an ordinary media query below.
 */
 @theme {
-  --color-canvas: #fbfbfa;
+  --color-canvas: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-2: #f6f6f5;
-  --color-line: #e5e4e1;
-  --color-line-strong: #d3d2ce;
+  --color-surface-2: #f8f9fa;
+  --color-line: #e9e9eb;
+  --color-line-strong: #d7d8dd;
 
-  --color-ink: #1a1a18;
-  --color-ink-2: #4a4a46;
-  --color-muted: #78776f;
-  --color-faint: #9c9b93;
+  --color-ink: #121212;
+  --color-ink-2: #44475b;
+  --color-muted: #7c7e8c;
+  --color-faint: #a1a3ad;
 
-  --color-accent: #1f5c46;
-  --color-accent-soft: #edf3f0;
+  --color-accent: #00d09c;
+  --color-accent-soft: #e6faf4;
+  --color-brand-blue: #5367ff;
+  --color-brand-blue-soft: #eef0ff;
 
-  --color-up: #12694a;
-  --color-down: #a8321f;
-  --color-up-soft: #eaf4ef;
-  --color-down-soft: #fbeeea;
+  --color-up: #00b386;
+  --color-down: #eb5b3c;
+  --color-up-soft: #e6f7f1;
+  --color-down-soft: #fdeeea;
 
-  --color-high: #a8321f;
-  --color-high-soft: #fbeeea;
-  --color-medium: #8a5a12;
-  --color-medium-soft: #fbf3e4;
-  --color-normal: #5d5c56;
-  --color-normal-soft: #f2f2f0;
-  --color-reviewed: #2f6b53;
-  --color-reviewed-soft: #ecf3f0;
+  --color-high: #eb5b3c;
+  --color-high-soft: #fdeeea;
+  --color-medium: #b97800;
+  --color-medium-soft: #fff6e5;
+  --color-normal: #7c7e8c;
+  --color-normal-soft: #f2f3f5;
+  --color-reviewed: #00996f;
+  --color-reviewed-soft: #e6f7f1;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
+/* Dark scheme: override the generated custom properties, never re-declare @theme. */
 @media (prefers-color-scheme: dark) {
-  @theme {
-    --color-canvas: #131312;
-    --color-surface: #1b1b1a;
-    --color-surface-2: #232322;
-    --color-line: #2f2f2d;
-    --color-line-strong: #3d3d3a;
+  :root {
+    --color-canvas: #121212;
+    --color-surface: #1b1c1f;
+    --color-surface-2: #232529;
+    --color-line: #2e3035;
+    --color-line-strong: #3d4046;
 
-    --color-ink: #f0efec;
-    --color-ink-2: #c9c8c3;
-    --color-muted: #94938c;
-    --color-faint: #74736d;
+    --color-ink: #f4f5f7;
+    --color-ink-2: #c8cad2;
+    --color-muted: #9295a1;
+    --color-faint: #6f7280;
 
-    --color-accent: #6bbd9a;
-    --color-accent-soft: #17251f;
+    --color-accent: #00d09c;
+    --color-accent-soft: #0d2a24;
+    --color-brand-blue: #7d8cff;
+    --color-brand-blue-soft: #1a1d33;
 
-    --color-up: #5cba8e;
-    --color-down: #e0705a;
-    --color-up-soft: #16241d;
-    --color-down-soft: #2a1815;
+    --color-up: #00d09c;
+    --color-down: #ff7a5c;
+    --color-up-soft: #0d2a24;
+    --color-down-soft: #2e1a15;
 
-    --color-high: #e0705a;
-    --color-high-soft: #2a1815;
-    --color-medium: #d4a24a;
-    --color-medium-soft: #26200f;
-    --color-normal: #a3a29a;
-    --color-normal-soft: #232322;
-    --color-reviewed: #6bbd9a;
-    --color-reviewed-soft: #17251f;
+    --color-high: #ff7a5c;
+    --color-high-soft: #2e1a15;
+    --color-medium: #f0b429;
+    --color-medium-soft: #2c2411;
+    --color-normal: #9295a1;
+    --color-normal-soft: #232529;
+    --color-reviewed: #00d09c;
+    --color-reviewed-soft: #0d2a24;
   }
 }
 
@@ -93,7 +108,7 @@ body {
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 @keyframes shimmer {
@@ -104,7 +119,7 @@ body {
 .skeleton {
   background: var(--color-surface-2);
   animation: shimmer 1.6s ease-in-out infinite;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 @media (prefers-reduced-motion: reduce) {

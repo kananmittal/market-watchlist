@@ -9,6 +9,49 @@ import { ApiError, api } from "@/lib/api";
 import type { CopilotReply } from "@/lib/types";
 import { Button, Card, SectionHeading } from "./ui";
 
+/**
+ * Minimal markdown rendering.
+ *
+ * The model is asked for plain prose, but instruction-following is not a
+ * guarantee: stray `**bold**` was reaching the page as literal asterisks.
+ * Handles bold and simple bullets, and nothing else - the copilot has no
+ * business emitting arbitrary HTML.
+ */
+function renderInline(text: string, key: number) {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  return (
+    <span key={key}>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <strong key={i} className="font-semibold text-ink">
+            {part}
+          </strong>
+        ) : (
+          part
+        ),
+      )}
+    </span>
+  );
+}
+
+function renderAnswer(answer: string) {
+  const lines = answer.split("\n").filter((l) => l.trim().length > 0);
+  return lines.map((line, i) => {
+    const trimmed = line.trim();
+    if (/^[-*\u2022]\s+/.test(trimmed)) {
+      return (
+        <div key={i} className="flex gap-2">
+          <span className="text-faint" aria-hidden="true">
+            &middot;
+          </span>
+          <span>{renderInline(trimmed.replace(/^[-*\u2022]\s+/, ""), i)}</span>
+        </div>
+      );
+    }
+    return <p key={i}>{renderInline(trimmed, i)}</p>;
+  });
+}
+
 const SUGGESTIONS = [
   "What changed in my watchlist?",
   "Which stock deserves attention?",
@@ -98,8 +141,8 @@ export function CopilotPanel({ symbol, compact = false }: { symbol?: string; com
               The AI explanation is unavailable, so the underlying evidence is shown instead.
             </p>
           ) : null}
-          <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink-2">
-            {reply.answer}
+          <div className="space-y-1.5 text-[13px] leading-relaxed text-ink-2">
+            {renderAnswer(reply.answer)}
           </div>
           {reply.grounded && reply.evidence.length ? (
             <details className="mt-3">

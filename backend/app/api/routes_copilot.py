@@ -12,8 +12,9 @@ from app.api.deps import (
     get_memory_service,
 )
 from app.api.schemas import CopilotRequest, CopilotResponse
-from app.models.domain import User
+from app.models.domain import ChangeEvent, User
 from app.models.enums import ActivityType
+from app.repositories.changes import ChangeEventRepository
 from app.repositories.news import NewsRepository
 from app.services.copilot import CopilotService
 from app.services.dashboard import DashboardService
@@ -40,7 +41,21 @@ async def chat(
     """
     result = await dashboard.build(user.id, advance_anchor=False, include_news=True)
 
-    changes = list(result.meaningful_changes) + list(result.normal_movements)
+    # Explain what the user is actually looking at. Rebuilding recomputes each
+    # change against the CURRENT anchor, so once a stock has been opened its
+    # move recomputes to ~0 and the copilot would describe it as "flat" while
+    # the page still shows -4.29%. Stored change events are the ones on screen.
+    stored = await ChangeEventRepository().list_for_user(user.id, limit=60)
+    # Results are ordered by attention descending, and a symbol can hold several
+    # rows from different anchors. setdefault keeps the highest-attention one -
+    # the same row the dashboard and stock page display. A plain dict
+    # comprehension would keep the LAST, i.e. the least significant.
+    by_symbol: dict[str, ChangeEvent] = {}
+    for c in stored:
+        by_symbol.setdefault(c.symbol, c)
+    changes = [
+        by_symbol.get(c.symbol, c) for c in list(result.meaningful_changes) + list(result.normal_movements)
+    ]
     focus = (body.symbol or "").strip().upper()
     if not focus:
         candidates = [c.symbol for c in changes]

@@ -65,22 +65,36 @@ class MarketObservationRepository:
             out[doc["symbol"]] = MarketObservation(**doc)
         return out
 
-    async def observation_at_or_before(self, symbol: str, when: Any) -> MarketObservation | None:
+    async def observation_at_or_before(
+        self, symbol: str, when: Any, *, synthetic: bool | None = None
+    ) -> MarketObservation | None:
         """The baseline for 'since you last looked': what the price was then."""
+        query: dict[str, Any] = {"symbol": symbol, "observed_at": {"$lte": when}}
+        if synthetic is not None:
+            query["is_synthetic"] = synthetic
         doc = await self.col.find_one(
-            {"symbol": symbol, "observed_at": {"$lte": when}},
+            query,
             {"_id": 0},
             sort=[("observed_at", DESCENDING)],
         )
         return MarketObservation(**doc) if doc else None
 
     async def observations_at_or_before_many(
-        self, symbols: list[str], when: Any
+        self, symbols: list[str], when: Any, *, synthetic: bool | None = None
     ) -> dict[str, MarketObservation]:
+        """Baselines at a point in time, optionally restricted by provenance.
+
+        Real and synthetic observations must never be compared with each other:
+        doing so measures the gap between a demo price and a live one, which
+        produced changes like "HDFC Bank up 134%".
+        """
         if not symbols:
             return {}
+        match: dict[str, Any] = {"symbol": {"$in": symbols}, "observed_at": {"$lte": when}}
+        if synthetic is not None:
+            match["is_synthetic"] = synthetic
         pipeline = [
-            {"$match": {"symbol": {"$in": symbols}, "observed_at": {"$lte": when}}},
+            {"$match": match},
             {"$sort": {"observed_at": DESCENDING}},
             {"$group": {"_id": "$symbol", "doc": {"$first": "$$ROOT"}}},
         ]

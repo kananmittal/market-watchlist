@@ -6,7 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Since You Last Looked — market watchlist",
+  title: "Since You Last Looked — Groww",
+  themeColor: "#00D09C",
   description:
     "A time-aware market watchlist that remembers what you saw and tells you what meaningfully changed since.",
 };

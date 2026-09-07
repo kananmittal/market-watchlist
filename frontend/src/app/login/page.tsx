@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { GrowwLogo } from "@/components/logo";
 import { Button } from "@/components/ui";
 
 export default function LoginPage() {
@@ -43,7 +44,8 @@ export default function LoginPage() {
     <div className="flex min-h-dvh flex-col items-center justify-center bg-canvas px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <h1 className="text-[22px] font-semibold tracking-tight text-ink">
+          <GrowwLogo size={36} />
+          <h1 className="mt-5 text-[24px] font-semibold tracking-tight text-ink">
             Since You Last Looked
           </h1>
           <p className="mt-2 text-[13px] leading-relaxed text-muted">
