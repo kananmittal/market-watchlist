@@ -2,6 +2,9 @@
 
 **A time-aware market watchlist that remembers what you saw and tells you what meaningfully changed since.**
 
+**▶ To run it: [RUN.md](RUN.md)** — verified setup, a two-minute review walkthrough and
+troubleshooting. No API key or market-data account needed.
+
 Traditional watchlists show you what the market looks like *now*. They have no memory, so
 every visit starts from zero and you have to work out for yourself what is new. This system
 remembers what each user has already seen and identifies what has **meaningfully changed
@@ -175,21 +178,25 @@ alarmingly calling normal last-session data stale. Demo figures are always label
 
 ## Running locally
 
-**Prerequisites:** Python 3.11+, Node 20+, MongoDB (local or Atlas).
+Full, verified reviewer instructions — including the click-by-click walkthrough and
+troubleshooting — are in **[RUN.md](RUN.md)**. The short version:
+
+**Prerequisites:** Python 3.11+ (macOS `python3` is often 3.9 — use `python3.12`), Node 20+,
+MongoDB (local or Atlas).
 
 ```bash
 git clone https://github.com/kananmittal/market-watchlist.git
 cd market-watchlist
-cp .env.example .env          # then fill in GROQ_API_KEY and JWT_SECRET
+cp .env.example .env          # optional in demo mode; every setting has a working default
 ```
 
 **Backend**
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-uvicorn app.main:app --reload --port 8000
+DEMO_MODE=true uvicorn app.main:app --reload --port 8000
 ```
 
 **Frontend**
@@ -200,13 +207,18 @@ npm install
 NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
 ```
 
-Open http://localhost:3000. API docs are at http://localhost:8000/docs.
+Open http://localhost:3000. API docs are at http://localhost:8000/docs, health at
+http://localhost:8000/api/health.
+
+No API key is required: with no `GROQ_API_KEY` the copilot degrades to evidence cards, and
+`DEMO_MODE=true` needs no market credentials at all.
 
 ### Demo mode
 
 Set `DEMO_MODE=true` to run entirely on deterministic synthetic data — no market credentials,
 no internet. The change engine, persistence and UI all run for real; only the prices are
-generated, and they are labelled as such everywhere.
+generated, and they are labelled as such everywhere. Real market moves are usually small, so
+the "since you last looked" story is much easier to see this way.
 
 To walk the scripted story:
 
@@ -221,14 +233,15 @@ curl -X POST "$API/api/demo/step?step=1" -H "Authorization: Bearer $TOKEN"
 it a second run would baseline against the previous step and report that nothing changed. It
 clears only synthetic rows — real observations are never touched.
 
+[RUN.md](RUN.md) has a copy-pasteable version of this that creates its own account.
+
 ---
 
 ## Testing
 
 ```bash
 cd backend
-pytest                    # 117 unit + integration tests
-pytest -m e2e             # 3 Playwright browser tests (needs both servers running)
+pytest                    # 118 unit + integration tests
 ruff check app/ tests/    # lint
 mypy app/                 # type check
 
@@ -236,19 +249,27 @@ cd ../frontend
 npx tsc --noEmit && npx eslint src && npm run build
 ```
 
-E2E runs as a separate suite because Playwright's sync API installs its own event loop, which
-prevents pytest-asyncio creating one for any async test collected afterwards.
+The 3 Playwright browser tests run as a separate suite, because Playwright's sync API installs
+its own event loop, which prevents pytest-asyncio creating one for any async test collected
+afterwards. They need Playwright and both servers running — see
+[RUN.md](RUN.md#8-tests) for the exact commands:
+
+```bash
+pip install playwright && playwright install chromium
+pytest -m e2e             # skips itself if the servers are not up
+```
 
 ---
 
 ## Environment variables
 
-Only two are genuinely required. See [`.env.example`](.env.example) for the full list.
+Nothing is required to run it locally in demo mode — every setting has a working default.
+See [`.env.example`](.env.example) for the full list.
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `GROQ_API_KEY` | **Yes** | Copilot. `GROQ` is accepted as a shorthand |
-| `MONGODB_URI` | **Yes** | Database. `DATABASE_URL` accepted as an alias |
+| `GROQ_API_KEY` | For AI prose | Copilot. Without it the copilot returns the evidence instead. `GROQ` is accepted as a shorthand |
+| `MONGODB_URI` | Non-local DB | Database. Defaults to `mongodb://localhost:27017`. `DATABASE_URL` accepted as an alias |
 | `JWT_SECRET` | Production | Token signing; 32+ random characters |
 | `NEXT_PUBLIC_API_URL` | Frontend | Public backend URL |
 | `CORS_ORIGINS` | Production | Allowed origins; `*.vercel.app` always permitted |
